@@ -12,11 +12,11 @@ pipeline {
         git url: 'https://github.com/maithuc2003/test_docker_GO.git', branch: 'main'
       }
     }
-    stage('Merge Feature Branch') {
+    stage('Merge Develop into Main') {
       steps {
         script {
-          bat 'git fetch origin feature-branch'
-          bat 'git merge origin/feature-branch --no-ff -m "Merge feature-branch into main"'
+          bat 'git fetch origin develop'
+          bat 'git merge origin/develop'
         }
       }
     }
@@ -37,5 +37,5 @@ pipeline {
         }
       }
     }
-  } // <-- đóng stages
+  } 
 } // <-- đóng pipeline
