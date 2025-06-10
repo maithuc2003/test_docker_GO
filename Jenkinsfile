@@ -17,16 +17,15 @@ pipeline {
                 bat "docker build -t ${DOCKER_IMAGE}:${env.BRANCH_NAME} ."
             }
         }
-
         stage('Push Docker Image') {
             when {
-                branch 'main'   // chỉ chạy stage này nếu đang ở branch main
+                branch 'main'
             }
             steps {
-                withCredentials([string(credentialsId: 'DOCKERHUB', variable: 'PASS')]) {
+                withCredentials([usernamePassword(credentialsId: 'DOCKERHUB', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     bat """
-                    echo %PASS% | docker login -u maithuc2003 --password-stdin
-                    docker push ${DOCKER_IMAGE}:${env.BRANCH_NAME}
+                        docker login -u %DOCKER_USER% -p %DOCKER_PASS%
+                        docker push maithuc2003/go-book-api:main
                     """
                 }
             }
