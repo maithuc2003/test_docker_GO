@@ -1,24 +1,30 @@
-version: '3.8'
+version: "3.9"
+
 services:
   web:
     image: maithuc2003/go-book-api:latest
     depends_on:
       - db
     ports:
-      - 8080:8080
-    env_file:
-      - .env
+      - "${PORT}:8080"
+    environment:
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+
+  db:
+    image: mysql:5.7
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+    volumes:
+      - ./db:/var/lib/mysql
+
   cache:
     image: redis:alpine
     ports:
-      - 6379:6379
-  db:
-    image: mysql:5.7
-    env_file:
-      - .env
-    ports:
-      - 3306:3306
-    volumes:
-      - ./db:/var/lib/mysql
-volumes:
-  db:
+      - "6379:6379"
