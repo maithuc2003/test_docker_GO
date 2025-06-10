@@ -38,8 +38,19 @@ pipeline {
                 branch 'main'
             }
             steps {
-                  bat "docker-compose -f docker-compose.yaml up -d --build"
+                withCredentials([file(credentialsId: 'my-env-file_new', variable: 'ENV_PATH')]) {
+                    bat """
+                        copy %ENV_PATH% .env
+                        docker-compose -f docker-compose.yaml up -d --build
+                    """
+                }
             }
+        }
+    }
+
+    post {
+        always {
+            bat 'del .env' // Xoá .env sau khi chạy
         }
     }
 }
