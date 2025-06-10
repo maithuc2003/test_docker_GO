@@ -14,9 +14,11 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                bat "docker build -t ${DOCKER_IMAGE}:${env.BRANCH_NAME} ."
+                bat "docker build -t %DOCKER_IMAGE%:%BRANCH_NAME% ."
+                bat "docker tag %DOCKER_IMAGE%:%BRANCH_NAME% %DOCKER_IMAGE%:latest"
             }
         }
+
         stage('Push Docker Image') {
             when {
                 branch 'main'
@@ -25,9 +27,19 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'DOCKERHUB', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     bat """
                         docker login -u %DOCKER_USER% -p %DOCKER_PASS%
-                        docker tag ${DOCKER_IMAGE}:${env.BRANCH_NAME} ${DOCKER_IMAGE}:v1
-                        docker push ${DOCKER_IMAGE}:v1
+                        docker push %DOCKER_IMAGE%:latest
                     """
+                }
+            }
+        }
+
+        stage('Deploy with Docker Compose') {
+            when {
+                branch 'main'
+            }
+            steps {
+                dir('C:\\Users\\Admin\\Downloads\\TTDN\\book-api\\GO_docker_compose') {
+                    bat "docker-compose -f docker-compose.yaml up -d --build"
                 }
             }
         }
