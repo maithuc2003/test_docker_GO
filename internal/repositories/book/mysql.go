@@ -3,6 +3,7 @@ package book
 import (
 	"database/sql"
 	"fmt"
+
 	"github.com/maithuc2003/re-book-api/internal/models"
 
 	"github.com/go-sql-driver/mysql"
@@ -33,7 +34,7 @@ func (r *bookRepo) Create(book *models.Book) error {
 
 // Implement interface method
 func (r *bookRepo) GetAllBooks() ([]*models.Book, error) {
-	// rows, err := r.db.Query("SELECT id, title, author_id, stock, created_at, updated_at FROM books")
+	rows, err := r.db.Query("SELECT id, title, author_id, stock, created_at, updated_at FROM books")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query books: %w", err)
 	}
@@ -42,7 +43,7 @@ func (r *bookRepo) GetAllBooks() ([]*models.Book, error) {
 	var books []*models.Book
 	for rows.Next() {
 		book := &models.Book{}
-		// err := rows.Scan(&book.ID, &book.Title, &book.AuthorID, &book.Stock, &book.CreatedAt, &book.UpdatedAt)
+		err := rows.Scan(&book.ID, &book.Title, &book.AuthorID, &book.Stock, &book.CreatedAt, &book.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -115,4 +116,3 @@ func (r *bookRepo) UpdateById(book *models.Book) (*models.Book, error) {
 	}
 	return book, nil
 }
-

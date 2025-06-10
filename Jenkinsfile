@@ -25,7 +25,7 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'DOCKERHUB', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     bat """
                         docker login -u %DOCKER_USER% -p %DOCKER_PASS%
-                        docker push maithuc2003/go-book-api:main
+                        docker push maithuc2003/go-book-api:v1
                     """
                 }
             }
