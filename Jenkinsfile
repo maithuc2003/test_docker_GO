@@ -15,6 +15,7 @@ pipeline {
     stage('Merge Develop into Main') {
       steps {
         script {
+          bat 'git checkout main'
           bat 'git fetch origin develop'
           bat 'git merge origin/develop'
         }
