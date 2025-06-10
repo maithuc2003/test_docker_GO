@@ -33,14 +33,12 @@ pipeline {
             }
         }
 
-        stage('Deploy with Docker Compose') {
+          stage('Deploy with Docker Compose') {
             when {
                 branch 'main'
             }
             steps {
-                dir('C:\\Users\\Admin\\Downloads\\TTDN\\book-api\\GO_docker_compose') {
-                    bat "docker-compose -f docker-compose.yaml up -d --build"
-                }
+                bat "docker-compose -f docker-compose.yaml up -d --build"
             }
         }
     }
