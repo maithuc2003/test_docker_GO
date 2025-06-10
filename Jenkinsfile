@@ -39,4 +39,4 @@ pipeline {
       }
     }
   } 
-} // <-- đóng pipeline
+}
