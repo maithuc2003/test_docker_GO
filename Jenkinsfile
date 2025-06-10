@@ -1,40 +1,45 @@
 pipeline {
-  agent any
+    agent any
 
-  environment {
-    DOCKER_IMAGE = 'maithuc2003/go-book-api'
-    DOCKER_TAG = 'latest'
-  }
-
-  stages {
-    stage('Checkout') {
-      steps {
-        git url: 'https://github.com/maithuc2003/test_docker_GO.git',
-            credentialsId: 'GITHUB_username_with_password'
-        // Không cần chỉ định branch nếu dùng multibranch
-      }
+    environment {
+        DOCKER_IMAGE = 'maithuc2003/go-book-api'
     }
 
-    stage('Build Docker Image') {
-      steps {
-        bat "docker build -t %DOCKER_IMAGE%:%DOCKER_TAG% ."
-      }
-    }
-
-    stage('Push Docker Image') {
-      steps {
-        withCredentials([usernamePassword(credentialsId: 'DOCKERHUB', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-          bat """
-          echo %PASS% | docker login -u %USER% --password-stdin
-          docker push %DOCKER_IMAGE%:%DOCKER_TAG%
-          """
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
         }
-      }
+
+        stage('Build Docker Image') {
+            steps {
+                bat "docker build -t %DOCKER_IMAGE%:%BRANCH_NAME% ."
+                bat "docker tag %DOCKER_IMAGE%:%BRANCH_NAME% %DOCKER_IMAGE%:latest"
+            }
+        }
+
+        stage('Push Docker Image') {
+            when {
+                branch 'main'
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'DOCKERHUB', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    bat """
+                        docker login -u %DOCKER_USER% -p %DOCKER_PASS%
+                        docker push %DOCKER_IMAGE%:latest
+                    """
+                }
+            }
+        }
+
+        stage('Deploy with Docker Compose') {
+            when {
+                branch 'main'
+            }
+            steps {
+                  bat "docker-compose -f docker-compose.yaml up -d --build"
+            }
+        }
     }
-    stage('Deploy with Docker Compose') {
-      steps {
-        bat 'docker-compose -f docker-compose.yaml up -d'
-      }
-    }
-  }
 }
