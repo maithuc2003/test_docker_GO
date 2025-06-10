@@ -41,6 +41,7 @@ pipeline {
                 withCredentials([file(credentialsId: 'my-env-file_new', variable: 'ENV_PATH')]) {
                     bat """
                         copy %ENV_PATH% .env
+                         docker-compose -f docker-compose.yaml down
                         docker-compose -f docker-compose.yaml up -d --build
                     """
                 }
