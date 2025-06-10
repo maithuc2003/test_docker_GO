@@ -13,9 +13,8 @@ services:
       - 6379:6379
   db:
     image: mysql:5.7
-    environment:
-      - MYSQL_ROOT_PASSWORD=thuc123
-      - MYSQL_DATABASE=tbl_test_golang
+    env_file:
+      - .env
     ports:
       - 3306:3306
     volumes:
@@ -23,5 +22,3 @@ services:
 volumes:
   db:
 
-# TỰ động merge chỉ cần github bấm merge thì bên docker hub tự login ,tự push 
-# Vì trong trường hợp như 1000 dev thì không phải tự động bằng tay được
