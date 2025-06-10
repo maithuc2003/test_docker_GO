@@ -18,6 +18,7 @@ func main() {
 		fmt.Println("Failed to connect:", err)
 		return
 	}
+	// OK đó
 	defer conn.Close() // gọi đóng kết nối khi main kết thúc
 
 	// Route api
