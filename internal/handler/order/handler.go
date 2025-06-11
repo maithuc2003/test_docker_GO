@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"github.com/maithuc2003/re-book-api/internal/models"
-	"github.com/maithuc2003/re-book-api/internal/service/order"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/maithuc2003/re-book-api/internal/models"
+	"github.com/maithuc2003/re-book-api/internal/service/order"
 
 	"github.com/go-sql-driver/mysql"
 )
@@ -33,7 +34,6 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// Log lỗi server
 		log.Printf("CreateOrder error: %v", err)
-
 		// Kiểm tra lỗi MySQL foreign key
 		if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1452 {
 			http.Error(w, "Failed to create order: foreign key constraint violation.", http.StatusBadRequest)
