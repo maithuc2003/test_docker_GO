@@ -6,10 +6,10 @@ import (
 )
 
 type BookService struct {
-	repo repositories.BookRepositories
+	repo repositories.BookRepoInterface
 }
 
-func NewBookService(repo repositories.BookRepositories) *BookService {
+func NewBookService(repo repositories.BookRepoInterface) *BookService {
 	return &BookService{repo: repo}
 }
 
@@ -17,7 +17,7 @@ func (s *BookService) CreateBook(book *models.Book) error {
 	return s.repo.Create(book)
 }
 
-func (s *BookService) GetAll() ([]*models.Book, error) {
+func (s *BookService) GetAllBooks() ([]*models.Book, error) {
 	return s.repo.GetAllBooks()
 }
 

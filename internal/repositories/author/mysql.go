@@ -12,11 +12,11 @@ type authorRepo struct {
 	db *sql.DB
 }
 
-func NewAuthorRepo(db *sql.DB) *authorRepo {
+func NewAuthorRepo(db *sql.DB) AuthorRepositoriesInterface {
 	return &authorRepo{db: db}
 }
 
-func (r *authorRepo) GetAllAuthor() ([]*models.Author, error) {
+func (r *authorRepo) GetAllAuthors() ([]*models.Author, error) {
 	rows, err := r.db.Query("SELECT `id`, `name`, `nationality`, `created_at`, `updated_at` FROM `authors`")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query author: %w", err)

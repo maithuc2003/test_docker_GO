@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+
 	"github.com/maithuc2003/re-book-api/internal/models"
 
 	"github.com/go-sql-driver/mysql"
@@ -13,7 +14,7 @@ type orderRepo struct {
 	db *sql.DB
 }
 
-func NewOrderRepo(db *sql.DB) *orderRepo {
+func NewOrderRepo(db *sql.DB) OrderReposiotoryInterface {
 	return &orderRepo{db: db}
 }
 

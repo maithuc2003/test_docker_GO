@@ -15,13 +15,18 @@ import (
 )
 
 type OrderHandler struct {
-	serviceOrder *order.OrderService
+	serviceOrder order.OrderServiceInterface
 }
 
-func NewOrderHandler(serviceOrder *order.OrderService) *OrderHandler {
+func NewOrderHandler(serviceOrder order.OrderServiceInterface) *OrderHandler {
 	return &OrderHandler{serviceOrder: serviceOrder}
 }
+
 func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	// Parse request body
 	var order models.Order
 	if err := json.NewDecoder(r.Body).Decode(&order); err != nil {
@@ -75,6 +80,10 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrderHandler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	orders, err := h.serviceOrder.GetAllOrders()
 	if err != nil {
 		log.Printf("GetAllOrder errr: %v", err)
@@ -87,6 +96,10 @@ func (h *OrderHandler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrderHandler) GetByOrderID(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	// 1. Lấy tham số id từ url query
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
@@ -111,6 +124,11 @@ func (h *OrderHandler) GetByOrderID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrderHandler) DeleteByOrderID(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
 		http.Error(w, "Missing 'id' parameter", http.StatusBadRequest)
@@ -133,6 +151,11 @@ func (h *OrderHandler) DeleteByOrderID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrderHandler) UpdateByOrderID(w http.ResponseWriter, r *http.Request) {
+	// Bảo vệ: chỉ cho phép PUT
+	if r.Method != http.MethodPut {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	// 1. Lấy tham số `id` từ URL query
 	idStr := r.URL.Query().Get("id")
 	// fmt.Println(idStr)

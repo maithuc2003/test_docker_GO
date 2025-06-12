@@ -3,6 +3,7 @@ package book
 import (
 	"database/sql"
 	"net/http"
+
 	bookHandler "github.com/maithuc2003/re-book-api/internal/handler/book"
 	bookRepo "github.com/maithuc2003/re-book-api/internal/repositories/book"
 	bookService "github.com/maithuc2003/re-book-api/internal/service/book"
@@ -30,7 +31,7 @@ func SetupServerBook(mux *http.ServeMux, db *sql.DB) {
 	})
 	mux.HandleFunc("/book", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			handler.GetBookByID(w, r)
+			handler.GetByBookID(w, r)
 		} else {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
@@ -49,5 +50,5 @@ func SetupServerBook(mux *http.ServeMux, db *sql.DB) {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
 	})
-	
+
 }
