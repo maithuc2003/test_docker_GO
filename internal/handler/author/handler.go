@@ -4,36 +4,47 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"github.com/maithuc2003/re-book-api/internal/models"
-	"github.com/maithuc2003/re-book-api/internal/service/author"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/maithuc2003/re-book-api/internal/models"
+	"github.com/maithuc2003/re-book-api/internal/service/author"
 
 	"github.com/go-sql-driver/mysql"
 )
 
 type AuthorHandler struct {
-	serviceAuthor *author.AuthorService
+	serviceAuthor author.AuthorServiceInterface
 }
 
-func NewAuthorHandler(serviceAuthor *author.AuthorService) *AuthorHandler {
+func NewAuthorHandler(serviceAuthor author.AuthorServiceInterface) *AuthorHandler {
 	return &AuthorHandler{serviceAuthor: serviceAuthor}
 }
 
 func (h *AuthorHandler) GetAllAuthors(w http.ResponseWriter, r *http.Request) {
-	authors, err := h.serviceAuthor.GetAllAuthor()
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	authors, err := h.serviceAuthor.GetAllAuthors()
 	if err != nil {
 		log.Printf("GetAllAuthors error : %v", err)
 		http.Error(w, "Failed to get authors", http.StatusInternalServerError)
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(authors)
 }
 
 func (h *AuthorHandler) GetByAuthorID(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	// 1. Lấy tham số `id` từ URL query
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
@@ -59,6 +70,10 @@ func (h *AuthorHandler) GetByAuthorID(w http.ResponseWriter, r *http.Request) {
 
 // Thuộc tính Fontend gửi backend gửi cái gì (intetnet) tcp,http
 func (h *AuthorHandler) CreateAuthor(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	// Parse the request body to get the book details
 	var author models.Author
 	if err := json.NewDecoder(r.Body).Decode(&author); err != nil {
@@ -105,7 +120,7 @@ func (h *AuthorHandler) DeleteById(w http.ResponseWriter, r *http.Request) {
 	// 3.Gọi service để xóa sách
 	author, err := h.serviceAuthor.DeleteById(id)
 	if err != nil {
-		if strings.Contains(err.Error(), "existing authpr") {
+		if strings.Contains(err.Error(), "existing author") {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}

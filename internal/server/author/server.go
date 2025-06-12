@@ -3,6 +3,7 @@ package book
 import (
 	"database/sql"
 	"net/http"
+
 	authorHandler "github.com/maithuc2003/re-book-api/internal/handler/author"
 	authorRepo "github.com/maithuc2003/re-book-api/internal/repositories/author"
 	authorService "github.com/maithuc2003/re-book-api/internal/service/author"
@@ -10,7 +11,7 @@ import (
 
 func SetupServerAuthor(mux *http.ServeMux, db *sql.DB) {
 	repo := authorRepo.NewAuthorRepo(db)
-	service := authorService.NewBookService(repo)
+	service := authorService.NewAuthorService(repo)
 	handler := authorHandler.NewAuthorHandler(service)
 	mux.HandleFunc("/authors", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {

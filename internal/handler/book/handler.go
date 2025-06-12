@@ -4,25 +4,30 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"github.com/maithuc2003/re-book-api/internal/models"
-	"github.com/maithuc2003/re-book-api/internal/service/book"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/maithuc2003/re-book-api/internal/models"
+	"github.com/maithuc2003/re-book-api/internal/service/book"
 
 	"github.com/go-sql-driver/mysql"
 )
 
 type BookHandler struct {
-	serviceBook *book.BookService
+	serviceBook book.BookServiceInterface
 }
 
-func NewBookHandler(serviceBook *book.BookService) *BookHandler {
+func NewBookHandler(serviceBook book.BookServiceInterface) *BookHandler {
 	return &BookHandler{serviceBook: serviceBook}
 }
 
 // Thuộc tính Fontend gửi backend gửi cái gì (intetnet) tcp,http
 func (h *BookHandler) CreateBook(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	// Parse the request body to get the book details
 	var book models.Book
 	if err := json.NewDecoder(r.Body).Decode(&book); err != nil {
@@ -54,7 +59,11 @@ func (h *BookHandler) CreateBook(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *BookHandler) GetAllBooks(w http.ResponseWriter, r *http.Request) {
-	books, err := h.serviceBook.GetAll()
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	books, err := h.serviceBook.GetAllBooks()
 	if err != nil {
 		log.Printf("GetAllBooks error : %v", err)
 		http.Error(w, "Failed to get books", http.StatusInternalServerError)
@@ -65,7 +74,11 @@ func (h *BookHandler) GetAllBooks(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(books)
 }
 
-func (h *BookHandler) GetBookByID(w http.ResponseWriter, r *http.Request) {
+func (h *BookHandler) GetByBookID(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	// 1. Lấy tham số `id` từ URL query
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
@@ -90,6 +103,11 @@ func (h *BookHandler) GetBookByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *BookHandler) DeleteById(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	// 1. Lấy tham số `id` từ URL query
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
@@ -118,6 +136,12 @@ func (h *BookHandler) DeleteById(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *BookHandler) UpdateById(w http.ResponseWriter, r *http.Request) {
+	// Bảo vệ: chỉ cho phép PUT
+	if r.Method != http.MethodPut {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	// 1. Lấy tham số `id` từ URL query
 	idStr := r.URL.Query().Get("id")
 	// fmt.Println(idStr)

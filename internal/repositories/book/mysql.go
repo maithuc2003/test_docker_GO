@@ -3,6 +3,7 @@ package book
 import (
 	"database/sql"
 	"fmt"
+
 	"github.com/maithuc2003/re-book-api/internal/models"
 
 	"github.com/go-sql-driver/mysql"
@@ -12,7 +13,7 @@ type bookRepo struct {
 	db *sql.DB
 }
 
-func NewBookRepo(db *sql.DB) *bookRepo {
+func NewBookRepo(db *sql.DB) BookRepoInterface {
 	return &bookRepo{db: db}
 }
 
@@ -115,4 +116,3 @@ func (r *bookRepo) UpdateById(book *models.Book) (*models.Book, error) {
 	}
 	return book, nil
 }
-

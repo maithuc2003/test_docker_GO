@@ -6,17 +6,18 @@ import (
 )
 
 type AuthorService struct {
-	repo repositories.AuthorRepositories
+	repo repositories.AuthorRepositoriesInterface
 }
 
-func NewBookService(repo repositories.AuthorRepositories) *AuthorService {
+func NewAuthorService(repo repositories.AuthorRepositoriesInterface) *AuthorService {
 	return &AuthorService{repo: repo}
 }
+
 func (s *AuthorService) CreateAuthor(author *models.Author) error {
 	return s.repo.CreateAuthor(author)
 }
-func (s *AuthorService) GetAllAuthor() ([]*models.Author, error) {
-	return s.repo.GetAllAuthor()
+func (s *AuthorService) GetAllAuthors() ([]*models.Author, error) {
+	return s.repo.GetAllAuthors()
 }
 
 func (s *AuthorService) GetByAuthorID(id int) (*models.Author, error) {
