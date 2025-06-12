@@ -10,8 +10,8 @@ import (
 	server_book "github.com/maithuc2003/re-book-api/internal/server/book"
 	server_order "github.com/maithuc2003/re-book-api/internal/server/order"
 )
-
 func main() {
+	// sdq
 	conn, err := db.NewMySQLConnection() // nhận biến conn và err
 	if err != nil {
 		// xử lý lỗi, ví dụ in ra và thoát
