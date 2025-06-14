@@ -42,6 +42,14 @@ func TestGetAllAuthors(t *testing.T) {
 			expectErrorMsg: "Method not allowed",
 		},
 		{
+			name:           "No found author error",
+			httpMethod:     http.MethodGet,
+			mockReturn:     []*models.Author{},
+			mockError:      errors.New("no authors found in the system"),
+			expectedStatus: http.StatusNotFound,
+			expectErrorMsg: "no authors found in the system",
+		},
+		{
 			name:           "Empty author list",
 			httpMethod:     http.MethodGet,
 			mockReturn:     []*models.Author{},
@@ -135,8 +143,32 @@ func TestCreateAuthor(t *testing.T) {
 			expectedStatus: http.StatusInternalServerError,
 			expectErrorMsg: "internal server error",
 		},
+		{
+			name:           "Author is nil",
+			httpMethod:     http.MethodPost,
+			requestBody:    nil,
+			mockError:      errors.New("author is nil"),
+			expectedStatus: http.StatusBadRequest,
+			expectErrorMsg: "author is nil",
+		},
+		{
+			name:           "Empty author name",
+			httpMethod:     http.MethodPost,
+			requestBody:    &models.Author{Name: "   "},
+			mockError:      errors.New("author name cannot be empty"),
+			expectedStatus: http.StatusBadRequest,
+			expectErrorMsg: "author name cannot be empty",
+		},
+		{
+			name:           "Duplicate author",
+			httpMethod:     http.MethodPost,
+			requestBody:    &models.Author{Name: "Jane Austen"},
+			mockError:      errors.New("author with the same name already exists"),
+			expectedStatus: http.StatusBadRequest,
+			expectErrorMsg: "already exists",
+		},
 	}
-	
+
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			mockService := new(mock.MockAuthorService)
@@ -224,6 +256,42 @@ func TestGetByAuthorID(t *testing.T) {
 			expectedStatus: http.StatusMethodNotAllowed,
 			expectErrorMsg: "Method not allowed",
 		},
+		{
+			name:           "Invalid author ID (service error)",
+			httpMethod:     http.MethodGet,
+			queryParam:     "id=0",
+			mockReturn:     nil,
+			mockError:      errors.New("invalid author ID"),
+			expectedStatus: http.StatusBadRequest,
+			expectErrorMsg: "invalid author ID\n",
+		},
+		{
+			name:           "Author not found (service error)",
+			httpMethod:     http.MethodGet,
+			queryParam:     "id=999",
+			mockReturn:     nil,
+			mockError:      errors.New("author not found"),
+			expectedStatus: http.StatusNotFound,
+			expectErrorMsg: "author not found\n",
+		},
+		{
+			name:           "Failed to retrieve author (DB error)",
+			httpMethod:     http.MethodGet,
+			queryParam:     "id=2",
+			mockReturn:     nil,
+			mockError:      errors.New("failed to retrieve author: DB error"),
+			expectedStatus: http.StatusInternalServerError,
+			expectErrorMsg: "failed to retrieve author: DB error\n",
+		},
+		{
+			name:           "Unexpected error from service",
+			httpMethod:     http.MethodGet,
+			queryParam:     "id=3",
+			mockReturn:     nil,
+			mockError:      errors.New("some strange unexpected error"),
+			expectedStatus: http.StatusInternalServerError,
+			expectErrorMsg: "Unexpected error\n",
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -280,6 +348,31 @@ func TestDeleteById(t *testing.T) {
 			expectedBody:   "Missing 'id' parameter",
 		},
 		{
+			name:           "Failed to delete author (DB error)",
+			queryParam:     "id=3",
+			mockReturn:     nil,
+			mockError:      errors.New("failed to delete author: database unreachable"),
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   "failed to delete author: database unreachable",
+		},
+		{
+			name:           "Invalid author ID (negative)",
+			queryParam:     "id=-1",
+			mockReturn:     nil,
+			mockError:      errors.New("invalid author ID"),
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "invalid author ID",
+		},
+		{
+			name:           "Author not found or already deleted",
+			queryParam:     "id=999",
+			mockReturn:     nil,
+			mockError:      errors.New("author not found or already deleted"),
+			expectedStatus: http.StatusNotFound,
+			expectedBody:   "author not found or already deleted",
+		},
+
+		{
 			name:           "Invalid ID param",
 			queryParam:     "id=abc",
 			expectedStatus: http.StatusBadRequest,
@@ -300,6 +393,14 @@ func TestDeleteById(t *testing.T) {
 			mockError:      errors.New("existing author with books"),
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   "existing author with books",
+		},
+		{
+			name:           "Unexpected error not matching any known cases",
+			queryParam:     "id=10",
+			mockReturn:     nil,
+			mockError:      errors.New("something went terribly wrong"),
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   "Unexpected error",
 		},
 	}
 
