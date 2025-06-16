@@ -42,6 +42,22 @@ func (h *BookHandler) CreateBook(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// Log chi tiết lỗi ở server để biết nguyên nhân
 		log.Printf("Created book error : %v", err)
+		// Nếu là lỗi business logic (validate), trả lỗi chi tiết cho client
+		switch err.Error() {
+		case "book is nil":
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		case "book title is required":
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		case "book author ID is required":
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		case "book quantity cannot be negative":
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
 		if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1452 {
 			http.Error(w, "Failed to create book: the book_id does not exist.", http.StatusBadRequest)
 			return
@@ -66,6 +82,10 @@ func (h *BookHandler) GetAllBooks(w http.ResponseWriter, r *http.Request) {
 	books, err := h.serviceBook.GetAllBooks()
 	if err != nil {
 		log.Printf("GetAllBooks error : %v", err)
+		if err.Error() == "no books found" {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
 		http.Error(w, "Failed to get books", http.StatusInternalServerError)
 		return
 	}
@@ -123,12 +143,17 @@ func (h *BookHandler) DeleteById(w http.ResponseWriter, r *http.Request) {
 	// 3.Gọi service để xóa sách
 	book, err := h.serviceBook.DeleteById(id)
 	if err != nil {
-		if strings.Contains(err.Error(), "existing orders") {
+		switch {
+		case strings.Contains(err.Error(), "invalid book ID"):
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
+		case strings.Contains(err.Error(), "existing orders"):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		default:
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
 		}
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -167,7 +192,12 @@ func (h *BookHandler) UpdateById(w http.ResponseWriter, r *http.Request) {
 	// 3.Gọi service để cập nhất sách
 	book, err := h.serviceBook.UpdateById(&updateBook)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		switch err.Error() {
+		case "book is nil", "invalid book ID", "book title is required", "book author ID is required", "book quantity cannot be negative":
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		default:
+			http.Error(w, err.Error(), http.StatusNotFound)
+		}
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

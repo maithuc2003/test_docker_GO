@@ -28,13 +28,16 @@ func (r *orderRepo) Create(order *models.Order) error {
 	var currentStock int
 	err = tx.QueryRow("SELECT stock FROM books WHERE id = ? FOR UPDATE;", order.BookID).Scan(&currentStock)
 	if err != nil {
-		tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return fmt.Errorf("rollback failed: %v, original error: %w", rbErr, err)
+		}
 		return fmt.Errorf("failed to fetch current stock: %w", err)
 	}
 	if currentStock < order.Quantity {
 		tx.Rollback()
 		return fmt.Errorf("not enough stock available")
 	}
+
 	// step 2: Insert order
 	query := "INSERT INTO orders (book_id, user_id, quantity, status ,ordered_at) VALUES (?, ?, ?, ?,?)"
 	result, err := tx.Exec(query, order.BookID, order.UserID, order.Quantity, order.Status, order.OrderedAt)
@@ -144,3 +147,4 @@ func (r *orderRepo) UpdateByOrderID(order *models.Order) (*models.Order, error) 
 	}
 	return order, nil
 }
+

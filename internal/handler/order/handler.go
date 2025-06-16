@@ -39,6 +39,12 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// Log lỗi server
 		log.Printf("CreateOrder error: %v", err)
+		// Validate các lỗi đầu vào từ service
+		switch err.Error() {
+		case "order is nil", "invalid book ID", "invalid user ID", "quantity must be greater than zero", "status is required":
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 		// Kiểm tra lỗi MySQL foreign key
 		if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1452 {
 			http.Error(w, "Failed to create order: foreign key constraint violation.", http.StatusBadRequest)
@@ -87,6 +93,10 @@ func (h *OrderHandler) GetAllOrders(w http.ResponseWriter, r *http.Request) {
 	orders, err := h.serviceOrder.GetAllOrders()
 	if err != nil {
 		log.Printf("GetAllOrder errr: %v", err)
+		if err.Error() == "no books found" {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
 		http.Error(w, "Failed to get order", http.StatusInternalServerError)
 		return
 	}
@@ -114,7 +124,14 @@ func (h *OrderHandler) GetByOrderID(w http.ResponseWriter, r *http.Request) {
 	// 3. Gọi service để lấy order
 	order, err := h.serviceOrder.GetByOrderID(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		switch err.Error() {
+		case "invalid order ID":
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		case "existing orders": // nếu có xử lý cụ thể, giữ lại
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		default:
+			http.Error(w, err.Error(), http.StatusNotFound)
+		}
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -141,6 +158,10 @@ func (h *OrderHandler) DeleteByOrderID(w http.ResponseWriter, r *http.Request) {
 	}
 	order, err := h.serviceOrder.DeleteByOrderID(id)
 	if err != nil {
+		if err.Error() == "invalid order ID" {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
@@ -180,12 +201,22 @@ func (h *OrderHandler) UpdateByOrderID(w http.ResponseWriter, r *http.Request) {
 	// 3. Gọi service để cập nhập order
 	order, err := h.serviceOrder.UpdateByOrderID(&updateOrder)
 	if err != nil {
-		if err.Error() == "foreign key constraint fails: book_id does not exist" {
+		switch err.Error() {
+		case "order is nil",
+			"invalid order ID",
+			"invalid book ID",
+			"invalid user ID",
+			"quantity must be greater than zero",
+			"status is required":
+			http.Error(w, "Validation error: "+err.Error(), http.StatusBadRequest)
+			return
+		case "foreign key constraint fails: book_id does not exist":
 			http.Error(w, "Invalid book_id: book does not exist", http.StatusBadRequest)
 			return
+		default:
+			http.Error(w, "Failed to update order: "+err.Error(), http.StatusInternalServerError)
+			return
 		}
-		http.Error(w, "Failed to update order: "+err.Error(), http.StatusInternalServerError)
-		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")

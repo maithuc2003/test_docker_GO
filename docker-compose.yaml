@@ -2,7 +2,10 @@ version: "3.9"
 
 services:
   web:
-    image: maithuc2003/go-book-api:latest
+    build:
+      context: ./web
+      dockerfile: dockerfile
+    # image: maithuc2003/go-book-api:latest
     depends_on:
       - db
     ports:

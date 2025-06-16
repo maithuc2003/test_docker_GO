@@ -8,10 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/maithuc2003/re-book-api/internal/models"
 	"github.com/maithuc2003/re-book-api/internal/service/author"
-
-	"github.com/go-sql-driver/mysql"
 )
 
 type AuthorHandler struct {
@@ -31,6 +30,10 @@ func (h *AuthorHandler) GetAllAuthors(w http.ResponseWriter, r *http.Request) {
 	authors, err := h.serviceAuthor.GetAllAuthors()
 	if err != nil {
 		log.Printf("GetAllAuthors error : %v", err)
+		if err.Error() == "no authors found in the system" {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
 		http.Error(w, "Failed to get authors", http.StatusInternalServerError)
 		return
 	}
@@ -45,24 +48,38 @@ func (h *AuthorHandler) GetByAuthorID(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	// 1. Lấy tham số `id` từ URL query
+
+	// 1. Get the 'id' parameter from query
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
 		http.Error(w, "Missing 'id' parameter", http.StatusBadRequest)
 		return
 	}
-	// 2. Chuyển id từ string sang int
+
+	// 2. Convert 'id' to integer
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, "Invalid 'id' parameter", http.StatusBadRequest)
 		return
 	}
-	// 3. Gọi service để lấy tac gia
+
+	// 3. Call service to fetch author
 	author, err := h.serviceAuthor.GetByAuthorID(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		switch {
+		case strings.Contains(err.Error(), "invalid author ID"):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		case strings.Contains(err.Error(), "author not found"):
+			http.Error(w, err.Error(), http.StatusNotFound)
+		case strings.Contains(err.Error(), "failed to retrieve author"):
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		default:
+			http.Error(w, "Unexpected error", http.StatusInternalServerError)
+		}
 		return
 	}
+
+	// 4. Return author in JSON format
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(author)
@@ -88,6 +105,14 @@ func (h *AuthorHandler) CreateAuthor(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// Log chi tiết lỗi ở server để biết nguyên nhân
 		log.Printf("Created author error : %v", err)
+		// error user (invalid input)
+		if strings.Contains(err.Error(), "name cannot be empty") ||
+			strings.Contains(err.Error(), "already exists") ||
+			strings.Contains(err.Error(), "author is nil") {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+
+		//error from Mysql
 		if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1452 {
 			http.Error(w, "Failed to create author: the author_id does not exist.", http.StatusBadRequest)
 			return
@@ -120,11 +145,18 @@ func (h *AuthorHandler) DeleteById(w http.ResponseWriter, r *http.Request) {
 	// 3.Gọi service để xóa sách
 	author, err := h.serviceAuthor.DeleteById(id)
 	if err != nil {
-		if strings.Contains(err.Error(), "existing author") {
+		switch {
+		case strings.Contains(err.Error(), "invalid author ID"):
 			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
+		case strings.Contains(err.Error(), "author not found"):
+			http.Error(w, err.Error(), http.StatusNotFound)
+		case strings.Contains(err.Error(), "existing author with books"):
+			http.Error(w, err.Error(), http.StatusBadRequest) 
+		case strings.Contains(err.Error(), "failed to delete author"):
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		default:
+			http.Error(w, "Unexpected error", http.StatusInternalServerError)
 		}
-		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

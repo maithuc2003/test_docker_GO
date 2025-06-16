@@ -40,6 +40,7 @@ func TestGetAllOrders(t *testing.T) {
 					Status:   "Pending",
 				},
 			},
+
 			mockError:      nil,
 			expectedStatus: http.StatusOK,
 			expectedResult: []*models.Order{
@@ -51,6 +52,14 @@ func TestGetAllOrders(t *testing.T) {
 					Status:   "Pending",
 				},
 			},
+		},
+		{
+			name:             "No books found - 404 error",
+			httpMethod:       http.MethodGet,
+			mockReturn:       nil,
+			mockError:        errors.New("no books found"),
+			expectedStatus:   http.StatusNotFound,
+			expectedErrorMsg: "no books found",
 		},
 		{
 			name:             "Error from service",
@@ -136,6 +145,66 @@ func TestCreateOrder(t *testing.T) {
 			requestBody:    nil,
 			expectedStatus: http.StatusMethodNotAllowed,
 			expectErrorMsg: "Method not allowed",
+		},
+		{
+			name:           "Order is nil",
+			httpMethod:     http.MethodPost,
+			requestBody:    &models.Order{}, // vẫn cần truyền JSON hợp lệ
+			mockError:      errors.New("order is nil"),
+			expectedStatus: http.StatusBadRequest,
+			expectErrorMsg: "order is nil",
+		},
+		{
+			name:       "Invalid book ID",
+			httpMethod: http.MethodPost,
+			requestBody: &models.Order{
+				BookID:   0,
+				UserID:   2,
+				Quantity: 3,
+				Status:   "Pending",
+			},
+			mockError:      errors.New("invalid book ID"),
+			expectedStatus: http.StatusBadRequest,
+			expectErrorMsg: "invalid book ID",
+		},
+		{
+			name:       "Invalid user ID",
+			httpMethod: http.MethodPost,
+			requestBody: &models.Order{
+				BookID:   1,
+				UserID:   0,
+				Quantity: 3,
+				Status:   "Pending",
+			},
+			mockError:      errors.New("invalid user ID"),
+			expectedStatus: http.StatusBadRequest,
+			expectErrorMsg: "invalid user ID",
+		},
+		{
+			name:       "Quantity must be greater than zero",
+			httpMethod: http.MethodPost,
+			requestBody: &models.Order{
+				BookID:   1,
+				UserID:   2,
+				Quantity: 0,
+				Status:   "Pending",
+			},
+			mockError:      errors.New("quantity must be greater than zero"),
+			expectedStatus: http.StatusBadRequest,
+			expectErrorMsg: "quantity must be greater than zero",
+		},
+		{
+			name:       "Status is required",
+			httpMethod: http.MethodPost,
+			requestBody: &models.Order{
+				BookID:   1,
+				UserID:   2,
+				Quantity: 1,
+				Status:   "",
+			},
+			mockError:      errors.New("status is required"),
+			expectedStatus: http.StatusBadRequest,
+			expectErrorMsg: "status is required",
 		},
 		{
 			name:       "No rows in result set",
@@ -277,6 +346,15 @@ func TestDeleteById(t *testing.T) {
 			expectedStatus:   http.StatusNotFound,
 			expectedErrorMsg: "Order not found",
 		},
+		{
+			name:             "Invalid order ID - negative",
+			httpMethod:       http.MethodDelete,
+			queryParam:       "id=-1",
+			mockReturn:       nil,
+			mockError:        errors.New("invalid order ID"),
+			expectedStatus:   http.StatusBadRequest,
+			expectedErrorMsg: "invalid order ID",
+		},
 	}
 
 	for _, tc := range tests {
@@ -384,6 +462,51 @@ func TestUpdateByID(t *testing.T) {
 			expectedErrorMsg: "Failed to update order",
 			httpMethod:       http.MethodPut,
 		},
+		{
+			name:             "Invalid order ID (<= 0)",
+			queryParam:       "id=0",
+			requestBody:      `{"book_id":101,"user_id":201,"quantity":2,"status":"Confirmed"}`,
+			mockError:        errors.New("invalid order ID"),
+			expectedStatus:   http.StatusBadRequest,
+			expectedErrorMsg: "Validation error: invalid order ID",
+			httpMethod:       http.MethodPut,
+		},
+		{
+			name:             "Invalid book ID (<= 0)",
+			queryParam:       "id=1",
+			requestBody:      `{"book_id":0,"user_id":201,"quantity":2,"status":"Confirmed"}`,
+			mockError:        errors.New("invalid book ID"),
+			expectedStatus:   http.StatusBadRequest,
+			expectedErrorMsg: "Validation error: invalid book ID",
+			httpMethod:       http.MethodPut,
+		},
+		{
+			name:             "Invalid user ID (<= 0)",
+			queryParam:       "id=1",
+			requestBody:      `{"book_id":101,"user_id":0,"quantity":2,"status":"Confirmed"}`,
+			mockError:        errors.New("invalid user ID"),
+			expectedStatus:   http.StatusBadRequest,
+			expectedErrorMsg: "Validation error: invalid user ID",
+			httpMethod:       http.MethodPut,
+		},
+		{
+			name:             "Quantity must be greater than zero",
+			queryParam:       "id=1",
+			requestBody:      `{"book_id":101,"user_id":201,"quantity":0,"status":"Confirmed"}`,
+			mockError:        errors.New("quantity must be greater than zero"),
+			expectedStatus:   http.StatusBadRequest,
+			expectedErrorMsg: "Validation error: quantity must be greater than zero",
+			httpMethod:       http.MethodPut,
+		},
+		{
+			name:             "Status is required",
+			queryParam:       "id=1",
+			requestBody:      `{"book_id":101,"user_id":201,"quantity":2,"status":""}`,
+			mockError:        errors.New("status is required"),
+			expectedStatus:   http.StatusBadRequest,
+			expectedErrorMsg: "Validation error: status is required",
+			httpMethod:       http.MethodPut,
+		},
 	}
 
 	for _, tc := range tests {
@@ -465,6 +588,30 @@ func TestGetOrderByID(t *testing.T) {
 			mockError:      errors.New("Order not found"),
 			expectedStatus: http.StatusNotFound,
 			expectErrorMsg: "Order not found",
+		},
+		{
+			name:           "Invalid order ID (zero or negative)",
+			httpMethod:     http.MethodGet,
+			queryParam:     "id=-5",
+			mockError:      errors.New("invalid order ID"),
+			expectedStatus: http.StatusBadRequest,
+			expectErrorMsg: "invalid order ID",
+		},
+		{
+			name:           "Other service error (e.g. unknown)",
+			httpMethod:     http.MethodGet,
+			queryParam:     "id=100",
+			mockError:      errors.New("unexpected error"),
+			expectedStatus: http.StatusNotFound,
+			expectErrorMsg: "unexpected error",
+		},
+		{
+			name:           "Existing orders error",
+			httpMethod:     http.MethodGet,
+			queryParam:     "id=10",
+			mockError:      errors.New("existing orders"),
+			expectedStatus: http.StatusBadRequest,
+			expectErrorMsg: "existing orders",
 		},
 	}
 

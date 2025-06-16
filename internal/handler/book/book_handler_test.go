@@ -50,6 +50,14 @@ func TestGetAllBooks(t *testing.T) {
 			expectedErrorMsg: "Failed to get books",
 		},
 		{
+			name:             "No books found - 404 error",
+			httpMethod:       http.MethodGet,
+			mockReturn:       nil,
+			mockError:        errors.New("no books found"),
+			expectedStatus:   http.StatusNotFound,
+			expectedErrorMsg: "no books found",
+		},
+		{
 			name:             "Invalid HTTP method - Method Not Allowed",
 			httpMethod:       http.MethodPost,
 			expectedStatus:   http.StatusMethodNotAllowed,
@@ -144,6 +152,48 @@ func TestCreateBook(t *testing.T) {
 			expectedStatus: http.StatusInternalServerError,
 			expectErrorMsg: "internal server error",
 		},
+		{
+			name:           "Book is nil",
+			httpMethod:     http.MethodPost,
+			requestBody:    &models.Book{}, // Gửi rỗng để mô phỏng book bị nil trong service
+			mockError:      errors.New("book is nil"),
+			expectedStatus: http.StatusBadRequest,
+			expectErrorMsg: "book is nil",
+		},
+		{
+			name:       "Missing title",
+			httpMethod: http.MethodPost,
+			requestBody: &models.Book{
+				Stock:    10,
+				AuthorID: 1,
+			},
+			mockError:      errors.New("book title is required"),
+			expectedStatus: http.StatusBadRequest,
+			expectErrorMsg: "book title is required",
+		},
+		{
+			name:       "Missing author ID",
+			httpMethod: http.MethodPost,
+			requestBody: &models.Book{
+				Title: "No Author",
+				Stock: 5,
+			},
+			mockError:      errors.New("book author ID is required"),
+			expectedStatus: http.StatusBadRequest,
+			expectErrorMsg: "book author ID is required",
+		},
+		{
+			name:       "Negative stock",
+			httpMethod: http.MethodPost,
+			requestBody: &models.Book{
+				Title:    "Negative Stock",
+				Stock:    -5,
+				AuthorID: 1,
+			},
+			mockError:      errors.New("book quantity cannot be negative"),
+			expectedStatus: http.StatusBadRequest,
+			expectErrorMsg: "book quantity cannot be negative",
+		},
 	}
 	for _, tc := range Tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -208,6 +258,16 @@ func TestDeleteById(t *testing.T) {
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   "Missing 'id' parameter",
 		},
+		{
+			name:           "Invalid Book ID in service",
+			httpMethod:     http.MethodDelete,
+			queryParam:     "id=0", // id <= 0 sẽ gây ra lỗi
+			mockReturn:     nil,
+			mockError:      errors.New("invalid book ID"),
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "invalid book ID",
+		},
+
 		{
 			name:           "Invalid ID",
 			httpMethod:     http.MethodDelete,
@@ -307,6 +367,7 @@ func TestUpdateByID(t *testing.T) {
 			expectedBody:   "Missing 'id' parameter",
 			httpMethod:     http.MethodPut,
 		},
+
 		{
 			name:           "Invalid ID",
 			queryParam:     "id=abc",
@@ -355,6 +416,56 @@ func TestUpdateByID(t *testing.T) {
 			expectedStatus: http.StatusMethodNotAllowed,
 			expectedBody:   "Method not allowed",
 			httpMethod:     http.MethodGet,
+		},
+		{
+			name:           "Book is nil",
+			queryParam:     "id=1",
+			requestBody:    `{"title":"Updated Book","stock":5,"author_id":1}`, // vẫn cần requestBody để decode thành book
+			mockReturn:     nil,
+			mockError:      errors.New("book is nil"),
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "book is nil",
+			httpMethod:     http.MethodPut,
+		},
+		{
+			name:           "Invalid book ID",
+			queryParam:     "id=-1",
+			requestBody:    `{"title":"Updated Book","stock":5,"author_id":1}`,
+			mockReturn:     nil,
+			mockError:      errors.New("invalid book ID"),
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "invalid book ID",
+			httpMethod:     http.MethodPut,
+		},
+		{
+			name:           "Missing title",
+			queryParam:     "id=1",
+			requestBody:    `{"title":" ","stock":5,"author_id":1}`,
+			mockReturn:     nil,
+			mockError:      errors.New("book title is required"),
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "book title is required",
+			httpMethod:     http.MethodPut,
+		},
+		{
+			name:           "Invalid author ID",
+			queryParam:     "id=1",
+			requestBody:    `{"title":"Book","stock":5,"author_id":0}`,
+			mockReturn:     nil,
+			mockError:      errors.New("book author ID is required"),
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "book author ID is required",
+			httpMethod:     http.MethodPut,
+		},
+		{
+			name:           "Negative stock",
+			queryParam:     "id=1",
+			requestBody:    `{"title":"Book","stock":-5,"author_id":1}`,
+			mockReturn:     nil,
+			mockError:      errors.New("book quantity cannot be negative"),
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "book quantity cannot be negative",
+			httpMethod:     http.MethodPut,
 		},
 	}
 
